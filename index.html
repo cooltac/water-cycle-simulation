@@ -1,96 +1,175 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Interactive Water Cycle Simulation</title>
-
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Water Cycle with Ice, Snow & Definitions</title>
 <style>
   body {
     margin: 0;
     background: linear-gradient(#87ceeb, #e0f7ff);
     font-family: Arial, sans-serif;
     text-align: center;
+    position: relative;
   }
-
   canvas {
     display: block;
     margin: auto;
     background: linear-gradient(#87ceeb, #ffffff);
     max-width: 100%;
   }
-
   #controls {
     background: #ffffffcc;
     padding: 10px;
   }
-
   label {
     margin: 0 10px;
   }
-
   button {
     padding: 6px 12px;
     margin: 5px;
     cursor: pointer;
   }
+  #definition-box {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fffdd0cc;
+    border: 2px solid #666;
+    border-radius: 8px;
+    padding: 15px 20px;
+    max-width: 320px;
+    font-size: 16px;
+    box-shadow: 0 0 10px #aaa;
+    display: none;
+    z-index: 1000;
+  }
+  #definition-box button.close-btn {
+    float: right;
+    background: #ccc;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: 10px;
+  }
+  #definition-box button.close-btn:hover {
+    background: #bbb;
+  }
+  .clickable-word {
+    cursor: pointer;
+    text-decoration: underline;
+    color: #004080;
+  }
+  .clickable-word:hover {
+    color: #0077ff;
+  }
 </style>
 </head>
-
 <body>
-<h2>🌎 Interactive Water Cycle Simulation</h2>
+
+<h2>🌎 Water Cycle Simulation with Ice, Snow & Definitions ❄️</h2>
 
 <canvas id="canvas" width="900" height="500"></canvas>
 
 <div id="controls">
   <button onclick="toggleSimulation()">▶️ Start / ⏸️ Pause</button>
-  <button onclick="forceRain()">🌧️ Make it Rain</button>
-
+  <button onclick="forcePrecipitation()">🌧️/❄️ Force Precipitation</button>
   <label>🌡️ Temperature
-    <input type="range" min="1" max="10" value="5" id="temp">
+    <input type="range" min="0" max="15" value="5" id="temp" />
   </label>
-
   <label>💨 Wind
-    <input type="range" min="-5" max="5" value="0" id="wind">
+    <input type="range" min="-5" max="5" value="0" id="wind" />
   </label>
 </div>
 
-<p>
-☀️ Evaporation → ☁️ Condensation → 🌧️ Precipitation → 🌊 Collection
+<p style="font-size:18px; line-height:1.6; max-width:720px; margin: 20px auto;">
+  <span class="clickable-word" data-term="evaporation">☀️ Evaporation</span> →
+  <span class="clickable-word" data-term="condensation">☁️ Condensation</span> →
+  <span class="clickable-word" data-term="precipitation">🌧️ Precipitation</span> →
+  <span class="clickable-word" data-term="collection">🌊 Collection</span> /
+  <span class="clickable-word" data-term="ice">🧊 Ice</span> /
+  <span class="clickable-word" data-term="snow">❄️ Snow</span>
 </p>
 
+<div id="definition-box">
+  <button class="close-btn" onclick="hideDefinition()">✖</button>
+  <div id="definition-text"></div>
+</div>
+
 <script>
+const definitions = {
+  evaporation: "Evaporation is the process where water turns from liquid to vapor (gas) due to heat from the sun.",
+  condensation: "Condensation is when water vapor cools down and turns back into tiny water droplets, forming clouds.",
+  precipitation: "Precipitation happens when water droplets in clouds become heavy and fall as rain, snow, sleet, or hail.",
+  collection: "Collection is when water gathers in rivers, lakes, oceans, or underground after falling as precipitation.",
+  ice: "Ice forms when water freezes at or below 0°C, creating solid ice on water surfaces or land.",
+  snow: "Snow is frozen precipitation made of ice crystals that fall from clouds when temperatures are cold."
+};
+
+const defBox = document.getElementById("definition-box");
+const defText = document.getElementById("definition-text");
+
+document.querySelectorAll(".clickable-word").forEach(elem => {
+  elem.addEventListener("click", () => {
+    const term = elem.getAttribute("data-term");
+    defText.textContent = definitions[term] || "Definition not found.";
+    defBox.style.display = "block";
+  });
+});
+
+function hideDefinition() {
+  defBox.style.display = "none";
+}
+
+// Close definition box if user clicks outside it
+window.addEventListener("click", e => {
+  if (defBox.style.display === "block" && !defBox.contains(e.target) && !e.target.classList.contains("clickable-word")) {
+    hideDefinition();
+  }
+});
+
+// --- Water Cycle Simulation Code (same as before with ice & snow) ---
+
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 let running = false;
 let vapor = [];
-let rain = [];
-let clouds = [{x: 300, y: 80}];
+let precipitation = [];
+let clouds = [{ x: 300, y: 80 }];
 
 function toggleSimulation() {
   running = !running;
 }
 
-function forceRain() {
-  createRain(80);
+function forcePrecipitation() {
+  createPrecipitation(80);
 }
 
 function createVapor() {
   vapor.push({
     x: Math.random() * canvas.width,
     y: canvas.height - 60,
-    alpha: 1
+    alpha: 1,
   });
 }
 
-function createRain(amount = 30) {
+function createPrecipitation(amount = 30) {
   for (let i = 0; i < amount; i++) {
-    rain.push({
+    precipitation.push({
       x: clouds[0].x + Math.random() * 200,
-      y: clouds[0].y + 40
+      y: clouds[0].y + 40,
+      type: getPrecipitationType(),
     });
   }
+}
+
+function getPrecipitationType() {
+  const temp = Number(document.getElementById("temp").value);
+  return temp <= 4 ? "snow" : "rain";
 }
 
 function drawSun() {
@@ -101,7 +180,8 @@ function drawSun() {
 }
 
 function drawWater() {
-  ctx.fillStyle = "#1e90ff";
+  const temp = Number(document.getElementById("temp").value);
+  ctx.fillStyle = temp <= 2 ? "#a9d0f5" : "#1e90ff"; // Ice = lighter blue
   ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
 }
 
@@ -114,6 +194,17 @@ function drawCloud() {
   ctx.fill();
 }
 
+function drawSnowflake(x, y) {
+  ctx.fillStyle = "white";
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  for (let i = 0; i < 6; i++) {
+    ctx.lineTo(x + 5 * Math.cos((i * Math.PI) / 3), y + 5 * Math.sin((i * Math.PI) / 3));
+    ctx.moveTo(x, y);
+  }
+  ctx.fill();
+}
+
 function update() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -121,7 +212,7 @@ function update() {
   drawCloud();
   drawWater();
 
-  const temp = document.getElementById("temp").value;
+  const temp = Number(document.getElementById("temp").value);
   const wind = Number(document.getElementById("wind").value);
 
   if (running && Math.random() < temp * 0.03) {
@@ -146,19 +237,23 @@ function update() {
   if (clouds[0].x < -150) clouds[0].x = canvas.width;
 
   if (running && vapor.length > 80) {
-    createRain();
+    createPrecipitation();
     vapor = [];
   }
 
-  rain.forEach((r, i) => {
-    r.y += 5;
-    r.x += wind * 0.4;
+  precipitation.forEach((p, i) => {
+    p.y += 5;
+    p.x += wind * 0.4;
 
-    ctx.fillStyle = "#0077ff";
-    ctx.fillRect(r.x, r.y, 3, 10);
+    if (p.type === "rain") {
+      ctx.fillStyle = "#0077ff";
+      ctx.fillRect(p.x, p.y, 3, 10);
+    } else {
+      drawSnowflake(p.x, p.y);
+    }
 
-    if (r.y > canvas.height - 60) {
-      rain.splice(i, 1);
+    if (p.y > canvas.height - 60) {
+      precipitation.splice(i, 1);
     }
   });
 
@@ -166,8 +261,8 @@ function update() {
   ctx.font = "16px Arial";
   ctx.fillText("☀️ Evaporation", 50, canvas.height - 80);
   ctx.fillText("☁️ Condensation", clouds[0].x, clouds[0].y - 30);
-  ctx.fillText("🌧️ Precipitation", clouds[0].x + 40, clouds[0].y + 90);
-  ctx.fillText("🌊 Collection", 50, canvas.height - 20);
+  ctx.fillText("🌧️ Precipitation (Rain/Snow)", clouds[0].x + 10, clouds[0].y + 90);
+  ctx.fillText("🌊 Collection / 🧊 Ice", 50, canvas.height - 20);
 
   requestAnimationFrame(update);
 }
@@ -176,3 +271,4 @@ update();
 </script>
 </body>
 </html>
+
